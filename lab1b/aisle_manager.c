@@ -1,8 +1,8 @@
 /*
  * CSE 351 Lab 1b (Manipulating Bits in C)
  *
- * Name(s):  Po Peng
- * NetID(s): ericpp
+ * Name(s):  Po Peng, Kevin Le
+ * NetID(s): ericpp, kevin218
  *
  * ----------------------------------------------------------------------------
  * Overview

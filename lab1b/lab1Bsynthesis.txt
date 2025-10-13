@@ -1,26 +1,67 @@
 ******************************
 * Lab 1b Synthesis Questions *
 ******************************
-Name(s):  
-NetID(s): 
+Name(s):  Po Peng, Kevin Le
+NetID(s): ericpp, kevin218
 
 
 -----------------------------------------------------------
 1) Benefit 1:
+   Increases the possible range of item IDs from 2^6 = 64 to 2^8 = 256,
+   allowing more distinct product types (e.g., can store more kinds of goods).
 
    Benefit 2:
+   Expands the item count per section from 10 binary flags to an 8-bit count
+   (0–255), which directly represents quantity (e.g., can show “200 cans” instead
+   of just which shelf slots are filled).
 
    Drawback:
+   Loses the bit-level occupancy map of shelf positions; only total item count
+   is stored (cannot tell which specific slots are occupied).
 
    Preference & Justification:
+   I would choose the new representation because it can track more product types
+   and larger quantities, which is more useful for managing a large store.
 
 -----------------------------------------------------------
 2) Difference? Y/N
+   It depends
 
    Explain:
+   - If y is a 32-bit signed int, both yield the same bit pattern (0xFFFFFFFF),
+     representing -1 in two’s complement form.
+   - If y is a 64-bit long, then:
+        y = -1;         -> 0xFFFFFFFFFFFFFFFF  (value = -1)
+        y = 0xFFFFFFFF; -> 0x00000000FFFFFFFF  (value = 4294967295)
+        They differ because only the signed version extends the sign bit.
 
 -----------------------------------------------------------
 3) Explain:
 
+   Comparing floats with == or != is unreliable due to rounding and precision
+   errors. For example, (0.1f + 0.2f == 0.3f) is false in C, because 0.1f, 0.2f,
+   and 0.3f cannot be represented exactly in IEEE 754 single-precision (float).
+
+   Actual stored values (approximate):
+   0.1f ≈ 0x3DCCCCCD
+   0.2f ≈ 0x3E4CCCCD
+   0.3f ≈ 0x3E99999A
+   Adding the first two approximations gives about 0.30000001f,
+   which is not exactly equal to the stored representation of 0.3f,
+   so the equality test fails. (0.1f, 0.2f, and 0.3f are all approximations
+   in IEEE 754 float.)
+
    Considerations:
+
+   if (fabsf(a - b) < threshold)
+
+   - The threshold should depend on the magnitude of the numbers.
+     As noted in Section 3, larger numbers should use larger thresholds.
+     This is because in floating-point representation, as values get larger,
+     the spacing between representable numbers (ULP) also increases.
+   - Another important property of floating-point arithmetic is that if two
+     values differ greatly in size, the smaller one may be ignored during
+     subtraction due to loss of precision (e.g., 1e8f + 0.1f == 1e8f).
+     Therefore, both addition and subtraction with floats must account for
+     this limitation when choosing an appropriate threshold.
 
