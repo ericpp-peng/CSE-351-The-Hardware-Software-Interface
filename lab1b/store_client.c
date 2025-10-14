@@ -28,6 +28,9 @@
 // The number of bits in a section used for the item spaces
 #define NUM_SPACES 10
 
+// Initial value for max_items in section_with_most_items()
+#define INITIAL_MAX_ITEMS -1
+
 // Global array of aisles in this store. Each unsigned long in the array
 // represents one aisle.
 unsigned long aisles[NUM_AISLES];
@@ -45,29 +48,29 @@ int stockroom[NUM_ITEMS];
  * before moving onto the next section.
  */
 void refill_from_stockroom() {
-
-  for (int i = 0; i < NUM_AISLES; i++) {
-    for (int j = 0; j < SECTIONS_PER_AISLE; j++) {
+  for (int i = 0; i < NUM_AISLES; i++) { // for each aisle
+    for (int j = 0; j < SECTIONS_PER_AISLE; j++) { // for each section
 
       unsigned short item_id = get_id(&aisles[i], j);
+      int available_stock = stockroom[item_id];
 
-      for (int k = 0; k < NUM_ITEMS; k++) {
-        if (stockroom[k] > 0) {
-          if (k == item_id) {
-            unsigned short nums = num_items(&aisles[i], j);
-            unsigned short empty_num = NUM_SPACES - nums;
-            // stock grater than empty space, fill all empty space
-            if (stockroom[k] >= empty_num) {
-              add_items(&aisles[i], j, empty_num);
-              stockroom[k] -= empty_num;
-            }
-            else { // stock less than empty space, use all stock
-              add_items(&aisles[i], j, stockroom[k]);
-              stockroom[k] = 0;
-            }
-          }
-        }
+      if (available_stock == 0) { // no stock available
+        continue;
       }
+
+      int current_items = num_items(&aisles[i], j);
+      int empty_slots = NUM_SPACES - current_items;
+
+      if (empty_slots == 0) { // section already full
+        continue;
+      }
+      
+      // add either all available stock or fill all empty slots
+      int items_to_add = (available_stock < empty_slots) ? available_stock : empty_slots;
+
+      // fill section and update stockroom
+      add_items(&aisles[i], j, items_to_add);
+      stockroom[item_id] -= items_to_add;
     }
   }
 }
@@ -83,46 +86,43 @@ void refill_from_stockroom() {
 int fulfill_order(unsigned short id, int num) {
 
   int total_removed = 0;
-  int remaining_to_remove = num;
+  int remaining = num;
 
-  for (int i = 0; i < NUM_AISLES; i++) {
-    for (int j = 0; j < SECTIONS_PER_AISLE; j++) {
+  // step 1: remove items from aisles first
+  for (int i = 0; i < NUM_AISLES && remaining > 0; i++) { // for each aisle, also check if order is fulfilled
+    for (int j = 0; j < SECTIONS_PER_AISLE && remaining > 0; j++) { // for each aisle, also check if order is fulfilled
       unsigned short item_id = get_id(&aisles[i], j);
-      if (item_id == id) {
-        unsigned short num_item_in_section = num_items(&aisles[i], j);
-        // enough items in aisle
-        if (num_item_in_section >= remaining_to_remove) {
-          remove_items(&aisles[i], j, remaining_to_remove);
-          total_removed += remaining_to_remove;
-          return total_removed;
-        }
-        else { // not enough items in aisle
-          remove_items(&aisles[i], j, num_item_in_section);
-          remaining_to_remove -= num_item_in_section;
-          total_removed += num_item_in_section;
-        }
+
+      if (item_id != id) { // not the item we want
+        continue;
       }
+
+      int item_in_section = num_items(&aisles[i], j);
+      if (item_in_section == 0) { // no items in this section
+        continue;
+      }
+      
+      // remove either all items in section or remaining items needed
+      int items_to_remove = (item_in_section < remaining) ? item_in_section : remaining;
+      remove_items(&aisles[i], j, items_to_remove);
+      total_removed += items_to_remove; // update total removed
+      remaining -= items_to_remove; // update remaining items needed
     }
   }
 
-  if (remaining_to_remove == 0) {
+  // early return if order is already fulfilled
+  if (remaining == 0) {
     return total_removed;
   }
-  else if (remaining_to_remove > 0) {
-    // enough items in stockroom
-    if (stockroom[id] >= remaining_to_remove) {
-      stockroom[id] -= remaining_to_remove;
-      total_removed += remaining_to_remove;
-      return total_removed;
-    }
-    else { // not enough items in stockroom
-      total_removed += stockroom[id];
-      stockroom[id] = 0;
-      return total_removed;
-    }
-  }
 
-  return -1;
+  // step 2: use stockroom if needed
+  int available_stock = stockroom[id];
+  int to_remove = (remaining < available_stock) ? remaining : available_stock;
+
+  stockroom[id] -= to_remove; // update stockroom
+  total_removed += to_remove; // update total removed
+
+  return total_removed;
 }
 
 /* Return a pointer to the first section in the aisles with the given item id
@@ -135,16 +135,19 @@ unsigned short* empty_section_with_id(unsigned short id) {
   for (int i = 0; i < NUM_AISLES; i++) {
     for (int j = 0; j < SECTIONS_PER_AISLE; j++) {
       unsigned short item_id = get_id(&aisles[i], j);
-      if (item_id == id) {
-        unsigned short num_item_in_section = num_items(&aisles[i], j);
-        if (num_item_in_section == 0) {
-          return (unsigned short*) (&aisles[i]) + j;
-        }
+      
+      if (item_id != id) { // not the item we want
+        continue;
+      }
+
+      unsigned short num_item_in_section = num_items(&aisles[i], j);
+      if (num_item_in_section == 0) {
+        return ((unsigned short*) &aisles[i]) + j; // return pointer to section
       }
     }
   }
 
-  return NULL;
+  return NULL; // no such section exists
 }
 
 /* Return a pointer to the section with the most items in the store. Only
@@ -153,15 +156,17 @@ unsigned short* empty_section_with_id(unsigned short id) {
  */
 unsigned short* section_with_most_items() {
 
-  int max_items = -1;
+  int max_items = INITIAL_MAX_ITEMS; //ensure first section will be larger
   unsigned short* result_section = NULL;
 
   for (int i = 0; i < NUM_AISLES; i++) {
     for (int j = 0; j < SECTIONS_PER_AISLE; j++) {
-      unsigned short num_item_in_section = num_items(&aisles[i], j);
-      if (num_item_in_section > max_items) {
-        max_items = num_item_in_section;
-        result_section = (unsigned short*) (&aisles[i]) + j;
+      unsigned short items_in_section = num_items(&aisles[i], j);
+
+      // update max if needed
+      if (items_in_section > max_items) { //strictly greater to ensure lowest address in tie
+        max_items = items_in_section;
+        result_section = ((unsigned short*)&aisles[i]) + j;
       }
     }
   }
