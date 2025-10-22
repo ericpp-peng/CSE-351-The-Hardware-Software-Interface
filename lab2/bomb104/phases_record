@@ -1,0 +1,122 @@
+(gdb) disassemble phase_1
+Dump of assembler code for function phase_1:
+   0x0000000000401440 <+0>:     sub    $0x8,%rsp                      // common stack alignment operation at the beginning of a function, but it only appears when alignment or local variables are needed
+   0x0000000000401444 <+4>:     mov    $0x402460,%esi                 // store the address of string that compares with user input
+   0x0000000000401449 <+9>:     call   0x401873 <strings_not_equal>   // call the function to compare two strings
+   0x000000000040144e <+14>:    test   %eax,%eax                      // check the return value of strings_not_equal
+   0x0000000000401450 <+16>:    jne    0x401457 <phase_1+23>          // if not equal, jump to explode_bomb
+   0x0000000000401452 <+18>:    add    $0x8,%rsp
+   0x0000000000401456 <+22>:    ret
+   0x0000000000401457 <+23>:    call   0x401c7a <explode_bomb>
+   0x000000000040145c <+28>:    jmp    0x401452 <phase_1+18>
+End of assembler dump.
+
+(gdb) x /s 0x402460
+0x402460:       "Two plus two is ... ten. In base four! I'm fine!"
+
+=========================================================================
+
+(gdb) disas phase_2
+Dump of assembler code for function phase_2:
+   0x000000000040145e <+0>:     push   %rbp                          // recored the base pointer
+   0x000000000040145f <+1>:     push   %rbx                          // save the value of rbx register, because it will be motiffied in this function        
+   0x0000000000401460 <+2>:     sub    $0x28,%rsp                    // allocate 40 bytes on the stack for local variables
+   0x0000000000401464 <+6>:     mov    %rsp,%rbx                     // store the address of the first local variable array into rbx (e.g., int *array)
+   0x0000000000401467 <+9>:     mov    %rsp,%rsi                     // prepare the first argument for read_six_numbers (e.g., array[0])
+   0x000000000040146a <+12>:    call   0x401c9c <read_six_numbers>   // read six numbers from user input and store them in the local variable array
+   0x000000000040146f <+17>:    lea    0x14(%rsp),%rbp               // set rbp to point to the end of the local variable array (the last element)
+   0x0000000000401474 <+22>:    jmp    0x401489 <phase_2+43>
+   0x0000000000401476 <+24>:    cs nopw 0x0(%rax,%rax,1)
+   0x0000000000401480 <+34>:    add    $0x4,%rbx。                   // move to the next element in the array
+   0x0000000000401484 <+38>:    cmp    %rbp,%rbx                     // check if we have reached the end of the array
+   0x0000000000401487 <+41>:    je     0x40149a <phase_2+60>
+   0x0000000000401489 <+43>:    mov    (%rbx),%eax                   // start compare, from the first numbers in the array
+   0x000000000040148b <+45>:    add    $0x5,%eax                     // array[i] + 5
+   0x000000000040148e <+48>:    cmp    %eax,0x4(%rbx).               // compare array[i] + 5 with array[i+1]
+   0x0000000000401491 <+51>:    je     0x401480 <phase_2+34>         // [ *** need to be equal, otherwise explode_bomb *** ] if equal, continue to the next number
+   0x0000000000401493 <+53>:    call   0x401c7a <explode_bomb>
+   0x0000000000401498 <+58>:    jmp    0x401480 <phase_2+34>
+   0x000000000040149a <+60>:    add    $0x28,%rsp
+   0x000000000040149e <+64>:    pop    %rbx
+   0x000000000040149f <+65>:    pop    %rbp
+   0x00000000004014a0 <+66>:    ret
+End of assembler dump.
+
+=========================================================================
+
+(gdb) disas phase_3
+Dump of assembler code for function phase_3:
+   0x00000000004014a1 <+0>:     sub    $0x18,%rsp。                    // for scanf local variables
+   // prepare arguments for sscanf(input, "%d %c %d", &num1, &ch ...), so rdi is input string, rsi is format string
+   0x00000000004014a5 <+4>:     lea    0x7(%rsp),%rcx                  // 2nd local variable, might be char
+   0x00000000004014aa <+9>:     lea    0xc(%rsp),%rdx                  // 1st local variable
+   0x00000000004014af <+14>:    lea    0x8(%rsp),%r8                   // 3rd local variable
+   0x00000000004014b4 <+19>:    mov    $0x402074,%esi.                 // format string "%d %c %d"
+   0x00000000004014b9 <+24>:    mov    $0x0,%eax                       // use 0 SSE parameter(i.e., no floating point arguments)
+   0x00000000004014be <+29>:    call   0x401150 <__isoc99_sscanf@plt>
+   0x00000000004014c3 <+34>:    cmp    $0x2,%eax                       // check if sscanf successfully parsed 3 items
+   0x00000000004014c6 <+37>:    jle    0x4014de <phase_3+61>           // if not, explode_bomb
+   0x00000000004014c8 <+39>:    cmpl   $0x7,0xc(%rsp)                  // chech if the 1st number is in the range 0 to 7
+   0x00000000004014cd <+44>:    ja     0x4015cf <phase_3+302>          // if above 7, explode_bomb
+   0x00000000004014d3 <+50>:    mov    0xc(%rsp),%eax.                 // move the 1st number into eax
+   0x00000000004014d7 <+54>:    jmp    *0x4025c0(,%rax,8)              // jump table base is at 0x4025c0, each store 8 bytes (address) to point to different cases
+   0x00000000004014de <+61>:    call   0x401c7a <explode_bomb>
+   0x00000000004014e3 <+66>:    jmp    0x4014c8 <phase_3+39>
+   // case 0, find by print /x *0x4025c0
+   0x00000000004014e5 <+68>:    mov    $0x6d,%eax                     // case 0: set eax = 0x6d (109) = ascii 'm'
+   0x00000000004014ea <+73>:    cmpl   $0x2fb,0x8(%rsp)               // compare the 3rd number with 0x2fb (763)
+   0x00000000004014f2 <+81>:    je     0x4015d9 <phase_3+312>         // if equal, jump to the end to check the char 
+   0x00000000004014f8 <+87>:    call   0x401c7a <explode_bomb>
+   0x00000000004014fd <+92>:    mov    $0x6d,%eax                     // redundant, just avoid explode return
+   0x0000000000401502 <+97>:    jmp    0x4015d9 <phase_3+312>
+   0x0000000000401507 <+102>:   mov    $0x64,%eax                     // case 1: set eax = 0x64 (100) = ascii 'd'
+   0x000000000040150c <+107>:   cmpl   $0x1e8,0x8(%rsp)               // compare the 3rd number with 0x1e8 (488)
+   0x0000000000401514 <+115>:   je     0x4015d9 <phase_3+312>         // if equal, jump to the end to check the char
+   0x000000000040151a <+121>:   call   0x401c7a <explode_bomb>
+   0x000000000040151f <+126>:   mov    $0x64,%eax
+   0x0000000000401524 <+131>:   jmp    0x4015d9 <phase_3+312>
+   0x0000000000401529 <+136>:   mov    $0x68,%eax                     // case 2: set eax = 0x68 (104) = ascii 'h'
+   0x000000000040152e <+141>:   cmpl   $0x277,0x8(%rsp)               // compare the 3rd number with 0x277 (631)
+   0x0000000000401536 <+149>:   je     0x4015d9 <phase_3+312>         // if equal, jump to the end to check the char
+   0x000000000040153c <+155>:   call   0x401c7a <explode_bomb>
+   0x0000000000401541 <+160>:   mov    $0x68,%eax
+   0x0000000000401546 <+165>:   jmp    0x4015d9 <phase_3+312>
+   0x000000000040154b <+170>:   mov    $0x74,%eax
+   0x0000000000401550 <+175>:   cmpl   $0x1dc,0x8(%rsp)
+   0x0000000000401558 <+183>:   je     0x4015d9 <phase_3+312>
+   0x000000000040155a <+185>:   call   0x401c7a <explode_bomb>
+   0x000000000040155f <+190>:   mov    $0x74,%eax
+   0x0000000000401564 <+195>:   jmp    0x4015d9 <phase_3+312>
+   0x0000000000401566 <+197>:   mov    $0x65,%eax
+   0x000000000040156b <+202>:   cmpl   $0x26a,0x8(%rsp)
+   0x0000000000401573 <+210>:   je     0x4015d9 <phase_3+312>
+   0x0000000000401575 <+212>:   call   0x401c7a <explode_bomb>
+   0x000000000040157a <+217>:   mov    $0x65,%eax
+   0x000000000040157f <+222>:   jmp    0x4015d9 <phase_3+312>
+   0x0000000000401581 <+224>:   mov    $0x6d,%eax
+   0x0000000000401586 <+229>:   cmpl   $0x3e,0x8(%rsp)
+   0x000000000040158b <+234>:   je     0x4015d9 <phase_3+312>
+   0x000000000040158d <+236>:   call   0x401c7a <explode_bomb>
+   0x0000000000401592 <+241>:   mov    $0x6d,%eax
+   0x0000000000401597 <+246>:   jmp    0x4015d9 <phase_3+312>
+   0x0000000000401599 <+248>:   mov    $0x75,%eax
+   0x000000000040159e <+253>:   cmpl   $0x14d,0x8(%rsp)
+   0x00000000004015a6 <+261>:   je     0x4015d9 <phase_3+312>
+   0x00000000004015a8 <+263>:   call   0x401c7a <explode_bomb>
+   0x00000000004015ad <+268>:   mov    $0x75,%eax
+   0x00000000004015b2 <+273>:   jmp    0x4015d9 <phase_3+312>
+   0x00000000004015b4 <+275>:   mov    $0x79,%eax
+   0x00000000004015b9 <+280>:   cmpl   $0x3dc,0x8(%rsp)
+   0x00000000004015c1 <+288>:   je     0x4015d9 <phase_3+312>
+   0x00000000004015c3 <+290>:   call   0x401c7a <explode_bomb>
+   0x00000000004015c8 <+295>:   mov    $0x79,%eax
+   0x00000000004015cd <+300>:   jmp    0x4015d9 <phase_3+312>
+   0x00000000004015cf <+302>:   call   0x401c7a <explode_bomb>
+   0x00000000004015d4 <+307>:   mov    $0x75,%eax
+   0x00000000004015d9 <+312>:   cmp    %al,0x7(%rsp).              // compare input char with the expected char sroted in eax
+   0x00000000004015dd <+316>:   jne    0x4015e4 <phase_3+323>
+   0x00000000004015df <+318>:   add    $0x18,%rsp
+   0x00000000004015e3 <+322>:   ret
+   0x00000000004015e4 <+323>:   call   0x401c7a <explode_bomb>
+   0x00000000004015e9 <+328>:   jmp    0x4015df <phase_3+318>
+End of assembler dump.
