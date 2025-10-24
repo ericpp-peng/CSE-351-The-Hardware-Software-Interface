@@ -105,8 +105,8 @@ Dump of assembler code for function phase_3:
    0x00000000004015a8 <+263>:   call   0x401c7a <explode_bomb>
    0x00000000004015ad <+268>:   mov    $0x75,%eax
    0x00000000004015b2 <+273>:   jmp    0x4015d9 <phase_3+312>
-   0x00000000004015b4 <+275>:   mov    $0x79,%eax
-   0x00000000004015b9 <+280>:   cmpl   $0x3dc,0x8(%rsp)
+   0x00000000004015b4 <+275>:   mov    $0x79,%eax                   // case 7: set eax = 0x79 (121) = ascii 'y' 
+   0x00000000004015b9 <+280>:   cmpl   $0x3dc,0x8(%rsp)             // compare the 3rd number with 0x3dc (988)
    0x00000000004015c1 <+288>:   je     0x4015d9 <phase_3+312>
    0x00000000004015c3 <+290>:   call   0x401c7a <explode_bomb>
    0x00000000004015c8 <+295>:   mov    $0x79,%eax
@@ -119,4 +119,114 @@ Dump of assembler code for function phase_3:
    0x00000000004015e3 <+322>:   ret
    0x00000000004015e4 <+323>:   call   0x401c7a <explode_bomb>
    0x00000000004015e9 <+328>:   jmp    0x4015df <phase_3+318>
+End of assembler dump.
+
+
+=========================================================================
+
+(gdb) disas phase_4
+Dump of assembler code for function phase_4:
+   0x0000000000401606 <+0>:     sub    $0x18,%rsp                       // allocate space for local variables
+    // prepare arguments for sscanf(input, "%d %c %d", &num1, &ch ...), so rdi is input string, rsi is format string
+   0x000000000040160a <+4>:     lea    0xc(%rsp),%rdx                   // address of 1st variable
+   0x000000000040160f <+9>:     mov    $0x40207a,%esi                   // format string "%d"
+   0x0000000000401614 <+14>:    mov    $0x0,%eax                        // use 0 SSE parameter(i.e., no floating point arguments)
+   0x0000000000401619 <+19>:    call   0x401150 <__isoc99_sscanf@plt>
+   0x000000000040161e <+24>:    cmp    $0x1,%eax                        // check if sscanf successfully parsed 1 item
+   0x0000000000401621 <+27>:    jne    0x40162a <phase_4+36>            // if not, explode_bomb
+   0x0000000000401623 <+29>:    cmpl   $0x0,0xc(%rsp)                   // check if the number is positive
+   0x0000000000401628 <+34>:    jg     0x40162f <phase_4+41>
+   0x000000000040162a <+36>:    call   0x401c7a <explode_bomb>
+   0x000000000040162f <+41>:    mov    0xc(%rsp),%edi                   // move the input number into edi (first argument for func4)
+   0x0000000000401633 <+45>:    call   0x4015eb <func4>                 // func4 is factorial function
+   0x0000000000401638 <+50>:    cmp    $0x58980,%eax                    // compare the return value of func4 with 0x58980 (362880) = 9!
+   0x000000000040163d <+55>:    jne    0x401644 <phase_4+62>
+   0x000000000040163f <+57>:    add    $0x18,%rsp
+   0x0000000000401643 <+61>:    ret
+   0x0000000000401644 <+62>:    call   0x401c7a <explode_bomb>
+   0x0000000000401649 <+67>:    jmp    0x40163f <phase_4+57>
+End of assembler dump.
+
+
+(gdb) disas func4
+Dump of assembler code for function func4:
+   0x00000000004015eb <+0>:     mov    $0x1,%eax               // base case: return 1
+   0x00000000004015f0 <+5>:     cmp    $0x1,%edi               // compare input argument with 1
+   0x00000000004015f3 <+8>:     jle    0x401605 <func4+26>     // if less than or equal to 1, return 1
+   0x00000000004015f5 <+10>:    push   %rbx                    // store rbx register in the stack
+   0x00000000004015f6 <+11>:    mov    %edi,%ebx               // move input argument into ebx for multiplication later
+   0x00000000004015f8 <+13>:    lea    -0x1(%rdi),%edi         // prepare argument for recursive call: n - 1
+   0x00000000004015fb <+16>:    call   0x4015eb <func4>        // recursive call
+   0x0000000000401600 <+21>:    imul   %ebx,%eax
+   0x0000000000401603 <+24>:    pop    %rbx
+   0x0000000000401604 <+25>:    ret
+   0x0000000000401605 <+26>:    ret
+End of assembler dump.
+
+=========================================================================
+
+(gdb) disas phase_5
+Dump of assembler code for function phase_5:
+   0x000000000040164b <+0>:     push   %rbx
+   0x000000000040164c <+1>:     mov    %rdi,%rbx                     // move the input string pointer into rbx
+   0x000000000040164f <+4>:     call   0x401851 <string_length>
+   0x0000000000401654 <+9>:     cmp    $0x6,%eax                     // check if the length of input string is 6  
+   0x0000000000401657 <+12>:    jne    0x40169d <phase_5+82>
+   0x0000000000401659 <+14>:    mov    %rbx,%rax                     // rax = the start of the input string
+   0x000000000040165c <+17>:    lea    0x6(%rbx),%rdi                // rdi = the end of the input string
+   0x0000000000401660 <+21>:    mov    $0x0,%ecx                     // ecx will store the sum
+   0x0000000000401665 <+26>:    data16 cs nopw 0x0(%rax,%rax,1)
+   0x0000000000401670 <+37>:    data16 cs nopw 0x0(%rax,%rax,1)
+   0x000000000040167b <+48>:    nopl   0x0(%rax,%rax,1)
+   0x0000000000401680 <+53>:    movzbl (%rax),%edx                   // load the current character from the input string
+   0x0000000000401683 <+56>:    and    $0xf,%edx                     // get the lower 4 bits of the character (i.e., map '0'-'9','a'-'f' to 0-15, so we can assume array index is 0-15)
+   0x0000000000401686 <+59>:    add    0x402600(,%rdx,4),%ecx        // add the value from the array to ecx (sum += array[index])
+   0x000000000040168d <+66>:    add    $0x1,%rax                     // move to the next character
+   0x0000000000401691 <+70>:    cmp    %rdi,%rax                     // check if we have processed all 6 characters
+   0x0000000000401694 <+73>:    jne    0x401680 <phase_5+53>
+   0x0000000000401696 <+75>:    cmp    $0x33,%ecx                    // compare the sum with 0x33 (51)
+   0x0000000000401699 <+78>:    jne    0x4016a4 <phase_5+89>
+   0x000000000040169b <+80>:    pop    %rbx
+   0x000000000040169c <+81>:    ret
+   0x000000000040169d <+82>:    call   0x401c7a <explode_bomb>
+   0x00000000004016a2 <+87>:    jmp    0x401659 <phase_5+14>
+   0x00000000004016a4 <+89>:    call   0x401c7a <explode_bomb>
+   0x00000000004016a9 <+94>:    jmp    0x40169b <phase_5+80>
+End of assembler dump.
+
+(gdb) x /16wd 0x402600
+0x402600 <array.0>:     2*       10      6       1
+0x402610 <array.0+16>:  12      16*      9       3*
+0x402620 <array.0+32>:  4       7*       14      5
+0x402630 <array.0+48>:  11      8*       15*      13
+
+one possible solution is to choose @%')-n
+the ascii lower 4 bit is 0, 5, 7, 9, d, e to get sum 51
+
+@: 0x40
+%: 0x25
+': 0x27
+): 0x29
+-: 0x2d
+n: 0x6e
+
+=========================================================================
+
+(gdb) disas phase_6
+Dump of assembler code for function phase_6:
+   0x0000000000401712 <+0>:     push   %rbx
+   0x0000000000401713 <+1>:     mov    $0xa,%edx
+   0x0000000000401718 <+6>:     mov    $0x0,%esi
+   0x000000000040171d <+11>:    call   0x401130 <strtol@plt>
+   0x0000000000401722 <+16>:    mov    %rax,%rbx
+   0x0000000000401725 <+19>:    mov    $0x404300,%edi
+   0x000000000040172a <+24>:    call   0x4016ab <fun6>
+   0x000000000040172f <+29>:    mov    0x8(%rax),%rax
+   0x0000000000401733 <+33>:    mov    0x8(%rax),%rax
+   0x0000000000401737 <+37>:    cmp    %ebx,(%rax)
+   0x0000000000401739 <+39>:    jne    0x40173d <phase_6+43>
+   0x000000000040173b <+41>:    pop    %rbx
+   0x000000000040173c <+42>:    ret
+   0x000000000040173d <+43>:    call   0x401c7a <explode_bomb>
+   0x0000000000401742 <+48>:    jmp    0x40173b <phase_6+41>
 End of assembler dump.
