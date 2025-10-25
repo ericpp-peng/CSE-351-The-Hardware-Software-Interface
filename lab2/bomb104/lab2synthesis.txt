@@ -1,23 +1,68 @@
 *****************************
 * Lab 2 Synthesis Questions *
 *****************************
-Name(s):  
-NetID(s): 
+Name(s):  Po Peng, Kevin Le
+NetID(s): ericpp, kevin218
 
 
 -----------------------------------------------------------
-1) &value:  
-   &array:  
+1) &value:  0x7fffffffdafc  (12 bytes below %rsp)
+   &array:  0x7fffffffdb00  (16 bytes below %rsp)
 -----------------------------------------------------------
-2) Init:   <fillArray+#>
-   Update: <fillArray+#>
+2) Init:   <fill_array+40>
+   Update: <fill_array+146>
 -----------------------------------------------------------
-3) String address: 
-   Part of memory: 
-   Assembly instruction address: <function+#>
+3) String address: 0x4020a2
+   Part of memory: .rodata  (read-only data section)
+   Assembly instruction address: <part_2+8>
 -----------------------------------------------------------
 4) Strategy + example:
+
+   The most useful strategy for me was two-step.
+   First, I learned the registers and their roles.
+   I understood what %rsp and %rbp do for stack and frame management,
+   and which registers hold arguments or return values,
+   such as %rdi, %rsi, %rdx, %rcx, and %rax.
+   This helped me quickly interpret how data flows between functions.
+
+   Second, I used GDB effectively.
+   The disas command helped me read a function’s assembly.
+   The print command allowed me to inspect registers and local addresses.
+   The x command was useful for examining memory contents, such as strings or arrays.
+   Using these three commands together,
+   I could reconstruct a function’s behavior without setting many breakpoints.
+
+   Take phase_1 as an example.
+   Once I knew that %eax holds the return value and %esi holds the second argument,
+   and I saw a call to a helper named strings_not_equal,
+   I could infer that the pointer stored in %esi
+   is the string that the program compares against the user input.
+   In other words, by combining disassembly, register knowledge,
+   and the function name, I could identify which memory was being compared
+   and figure out the correct input.
+
+   This approach made solving the lab phases systematic and efficient.
+   I inspected the assembly, mapped registers to their roles,
+   checked the referenced memory,
+   and reasoned about the expected inputs and outputs.
 -----------------------------------------------------------
 5) Difficulty + why (past experience):
+
+   The hardest part for me was understanding the dynamic changes of the stack.
+   I often struggled to determine which values were placed on the stack,
+   when the compiler reserved stack space,
+   and how %rsp and %rbp moved during nested calls.
+
+   Conceptually, I could read each instruction
+   and remember what the registers do,
+   but visualizing how the stack frame evolves line by line was much harder.
+
+   I think this was difficult because in high-level programming,
+   we rarely need to think about these low-level details.
+   To really understand it,
+   I had to re-watch the Panopto recordings
+   and step through several examples in GDB.
+   This part required true mastery through tracing and practice,
+   not just memorization.
 -----------------------------------------------------------
 
